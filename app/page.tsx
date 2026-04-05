@@ -1,65 +1,112 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+
+type SummaryData = {
+  totalIncome: number;
+  totalExpense: number;
+  netBalance: number;
+  categoryTotals: Record<string, number>;
+};
+
+export default function Dashboard() {
+  const [data, setData] = useState<SummaryData | any>(null);
+  // Using the new Admin ID generated after the DB wipe
+  const adminId = 'cmnm0108h0000140a9pp76bpy3';
+
+  useEffect(() => {
+    fetch('/api/dashboard/summary', {
+      headers: { 'X-User-Id': adminId }
+    })
+      .then(res => res.json())
+      .then(json => setData(json))
+      .catch(err => console.error(err));
+  }, []);
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white font-sans">
+        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (data.error) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white font-sans">
+        <div className="bg-red-500/10 border border-red-500 text-red-500 px-6 py-4 rounded-xl">
+          <h2 className="text-xl font-bold mb-2">API Error</h2>
+          <p>{data.error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-neutral-950 text-white font-sans p-8 md:p-24 selection:bg-emerald-500/30">
+      
+      {/* Header */}
+      <div className="max-w-5xl mx-auto mb-16 space-y-4">
+        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-cyan-400 text-transparent bg-clip-text">
+          Finance Overview
+        </h1>
+        <p className="text-neutral-400 text-lg max-w-xl leading-relaxed">
+          Real-time backend data visualization mapping your REST APIs to a premium interface.
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {/* Net Balance */}
+        <div className="group relative rounded-3xl p-[1px] bg-gradient-to-b from-emerald-500/50 to-neutral-800 hover:from-emerald-400 hover:to-neutral-700 transition-all duration-500">
+          <div className="h-full w-full bg-neutral-950/90 rounded-[23px] p-8 flex flex-col justify-center backdrop-blur-xl">
+             <h3 className="text-emerald-500 text-sm font-semibold uppercase tracking-wider mb-2">Net Balance</h3>
+             <p className="text-5xl font-light text-white">${data.netBalance.toLocaleString()}</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Income */}
+        <div className="group relative rounded-3xl p-[1px] bg-gradient-to-b from-blue-500/50 to-neutral-800 hover:from-blue-400 hover:to-neutral-700 transition-all duration-500">
+          <div className="h-full w-full bg-neutral-950/90 rounded-[23px] p-8 flex flex-col justify-center backdrop-blur-xl">
+             <h3 className="text-blue-500 text-sm font-semibold uppercase tracking-wider mb-2">Total Income</h3>
+             <p className="text-5xl font-light text-white">${data.totalIncome.toLocaleString()}</p>
+          </div>
         </div>
-      </main>
+
+        {/* Expense */}
+        <div className="group relative rounded-3xl p-[1px] bg-gradient-to-b from-rose-500/50 to-neutral-800 hover:from-rose-400 hover:to-neutral-700 transition-all duration-500">
+          <div className="h-full w-full bg-neutral-950/90 rounded-[23px] p-8 flex flex-col justify-center backdrop-blur-xl">
+             <h3 className="text-rose-500 text-sm font-semibold uppercase tracking-wider mb-2">Total Expenses</h3>
+             <p className="text-5xl font-light text-white">${data.totalExpense.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Breakdown */}
+      <div className="max-w-5xl mx-auto">
+        <div className="rounded-3xl p-[1px] bg-gradient-to-b from-neutral-800 to-neutral-900 overflow-hidden">
+           <div className="bg-neutral-950/90 rounded-[23px] p-8 backdrop-blur-xl">
+              <h3 className="text-xl font-bold mb-6 text-neutral-200">Category Breakdown</h3>
+              <div className="space-y-4">
+                {Object.entries(data.categoryTotals).map(([category, amount]) => (
+                  <div key={category} className="flex flex-col gap-2 p-4 rounded-xl hover:bg-neutral-900/50 transition-colors">
+                    <div className="flex justify-between items-center w-full">
+                      <span className="text-neutral-400 font-medium">{category}</span>
+                      <span className="text-white text-lg font-light">${amount.toLocaleString()}</span>
+                    </div>
+                    {/* Visual Bar */}
+                    <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+                       <div 
+                         className="h-full bg-emerald-500 rounded-full" 
+                         style={{ width: `${(amount / Math.max(data.totalIncome, data.totalExpense)) * 100}%`}}
+                       />
+                    </div>
+                  </div>
+                ))}
+              </div>
+           </div>
+        </div>
+      </div>
     </div>
   );
 }
