@@ -1,10 +1,10 @@
 import { prisma } from '../lib/db';
 
 export class DashboardService {
-  static async getSummary() {
+  static async getSummary(userId: string) {
     // Ensuring we only calculate active records (not soft-deleted)
     const records = await prisma.record.findMany({
-      where: { deletedAt: null }
+      where: { deletedAt: null, userId }
     });
 
     let totalIncome = 0;
@@ -27,9 +27,9 @@ export class DashboardService {
     };
   }
 
-  static async getRecent() {
+  static async getRecent(userId: string) {
     return await prisma.record.findMany({
-      where: { deletedAt: null },
+      where: { deletedAt: null, userId },
       orderBy: { date: 'desc' },
       take: 10
     });

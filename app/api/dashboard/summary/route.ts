@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!user || !hasRole(user, ['Admin', 'Analyst', 'Viewer'])) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
-    const summary = await DashboardService.getSummary();
+    const summary = await DashboardService.getSummary(user.id);
     return NextResponse.json(summary);
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

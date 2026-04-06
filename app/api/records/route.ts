@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const page = searchParams.get('page') ? parseInt(searchParams.get('page') as string) : undefined;
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') as string) : undefined;
 
-  const records = await RecordService.getRecords({ type, category, search, page, limit });
+  const records = await RecordService.getRecords({ userId: user.id, type, category, search, page, limit });
   return NextResponse.json(records);
 }
 
@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
   if (!user || !hasRole(user, ['Admin'])) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
-    const newRecord = await RecordService.createRecord(await req.json());
+    const payload = await req.json();
+    payload.userId = user.id;
+    const newRecord = await RecordService.createRecord(payload);
     return NextResponse.json(newRecord, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: 'Bad Request', details: error.errors }, { status: 400 });

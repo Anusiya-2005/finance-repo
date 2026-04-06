@@ -2,15 +2,15 @@ import { prisma } from '../lib/db';
 import { recordSchema } from '../lib/validations';
 
 export class RecordService {
-  static async getRecords(params: { type?: string; category?: string; search?: string; page?: number; limit?: number }) {
-    const { type, category, search } = params;
+  static async getRecords(params: { userId: string; type?: string; category?: string; search?: string; page?: number; limit?: number }) {
+    const { userId, type, category, search } = params;
     
     // Pagination defaults
     const page = params.page ? Math.max(1, params.page) : 1;
     const limit = params.limit ? Math.max(1, params.limit) : 10;
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, userId };
 
     if (type) where.type = type;
     if (category) where.category = category;
