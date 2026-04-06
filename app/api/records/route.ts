@@ -10,10 +10,12 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get('type') as string | undefined;
   const category = searchParams.get('category') || undefined;
   const search = searchParams.get('search') || undefined;
+  const startDate = searchParams.get('startDate') || undefined;
+  const endDate = searchParams.get('endDate') || undefined;
   const page = searchParams.get('page') ? parseInt(searchParams.get('page') as string) : undefined;
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') as string) : undefined;
 
-  const records = await RecordService.getRecords({ userId: user.id, type, category, search, page, limit });
+  const records = await RecordService.getRecords({ userId: user.id, type, category, search, startDate, endDate, page, limit });
   return NextResponse.json(records);
 }
 

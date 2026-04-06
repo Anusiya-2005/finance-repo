@@ -666,3 +666,47 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --- LIGHT MODE OVERRIDES --- */
+.lightTheme {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.lightTheme .sidebar { background-color: #ffffff; border-right: 1px solid #e5e7eb; }
+.lightTheme .main { background: #f9fafb; }
+.lightTheme .brandName, .lightTheme .pageTitle h1, .lightTheme .panelTitle, .lightTheme .cardValue { color: #111827; }
+.lightTheme .brandSub, .lightTheme .pageTitle p, .lightTheme .panelSub { color: #6b7280; }
+
+.lightTheme .navItem { color: #6b7280; }
+.lightTheme .navItem:hover { background-color: #f3f4f6; color: #111827; }
+.lightTheme .navItem.active { background-color: #f3e8ff; color: #9333ea; box-shadow: inset 2px 0 0 #9333ea; }
+.lightTheme .navLabel { color: #6b7280; }
+.lightTheme .darkModeToggle { color: #4b5563; }
+.lightTheme .darkModeToggle:hover { color: #111827; }
+
+.lightTheme .roleSelector, .lightTheme .topRole, .lightTheme .iconBtn { 
+  background-color: #ffffff; border-color: #d1d5db; color: #374151;
+}
+.lightTheme .roleSelector:hover { border-color: #9333ea; }
+
+.lightTheme .panel, .lightTheme .tableContainer, .lightTheme .formBox { 
+  background-color: #ffffff; border-color: #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.lightTheme .cardNet { background: #ffffff; border-color: #e5e7eb; }
+.lightTheme .cardIncome { background: #ffffff; border-color: #e5e7eb; }
+.lightTheme .cardExpense { background: #ffffff; border-color: #e5e7eb; }
+.lightTheme .cardSavings { background: #ffffff; border-color: #e5e7eb; }
+.lightTheme .cardTitle { color: #6b7280; }
+
+.lightTheme .tableContainer th { background-color: #f9fafb; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+.lightTheme .tableContainer td { color: #4b5563; border-bottom: 1px solid #e5e7eb; }
+.lightTheme .tableContainer tr:hover td { background-color: #f9fafb; }
+
+.lightTheme .inputField { background-color: #ffffff; border-color: #d1d5db; color: #1f2937; }
+.lightTheme .inputField:focus { border-color: #9333ea; outline: 2px solid rgba(147, 51, 234, 0.2); }
+.lightTheme .formGroup label { color: #4b5563; }
+
+.lightTheme .legendItem { color: #4b5563; }
+.lightTheme .legendItem strong { color: #111827 !important; }

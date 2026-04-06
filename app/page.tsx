@@ -3,12 +3,14 @@
 import { useEffect, useState, FormEvent } from 'react';
 import styles from './dashboard.module.css';
 import { getTestUsers } from './actions';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 type SummaryData = {
   totalIncome: number;
   totalExpense: number;
   netBalance: number;
   categoryTotals: Record<string, number>;
+  monthlyTrends: { month: string; income: number; expense: number; netBalance: number }[];
 };
 
 type RecordEntry = {
@@ -28,15 +30,22 @@ type UserData = {
 };
 
 export default function Dashboard() {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [activeView, setActiveView] = useState<'Overview' | 'Transactions'>('Overview');
   
   // Dashboard Data State
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [recentRecords, setRecentRecords] = useState<RecordEntry[]>([]);
 
   // Transactions Data State
   const [records, setRecords] = useState<RecordEntry[]>([]);
   const [recordsError, setRecordsError] = useState<string | null>(null);
+  
+  // Filtering Hooks
+  const [searchQuery, setSearchQuery] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   // Role switcher state
   const [users, setUsers] = useState<UserData[]>([]);
@@ -65,14 +74,21 @@ export default function Dashboard() {
     setRecordsError(null);
     
     if (activeView === 'Overview') {
-      fetch('/api/dashboard/summary', { headers: { 'X-User-Id': currentUser.id } })
-        .then(async res => {
+      Promise.all([
+        fetch('/api/dashboard/summary', { headers: { 'X-User-Id': currentUser.id } }).then(async res => {
           const json = await res.json();
           if (!res.ok) throw new Error(json.error || 'Failed to fetch summary');
           return json;
+        }),
+        fetch('/api/dashboard/recent', { headers: { 'X-User-Id': currentUser.id } }).then(async res => {
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Failed to fetch recent accounts');
+          return json;
         })
-        .then(json => setSummaryData(json))
-        .catch(err => setSummaryError(err.message));
+      ]).then(([summary, recent]) => {
+        setSummaryData(summary);
+        setRecentRecords(recent);
+      }).catch(err => setSummaryError(err.message));
     } 
     else if (activeView === 'Transactions') {
       fetchRecords();
@@ -80,7 +96,12 @@ export default function Dashboard() {
   }, [activeView, currentUser]);
 
   const fetchRecords = () => {
-    fetch('/api/records', { headers: { 'X-User-Id': currentUser!.id } })
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    fetch(`/api/records?${params.toString()}`, { headers: { 'X-User-Id': currentUser!.id } })
       .then(async res => {
         const json = await res.json();
         // Validation Constraint Example: Capture 403 gracefully
@@ -135,10 +156,32 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteRecord = async (id: string) => {
+    if (!confirm('Are you sure you want to carefully delete this remote record?')) return;
+    try {
+      const res = await fetch(`/api/records/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-User-Id': currentUser!.id }
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Failed to delete securely');
+      }
+      fetchRecords(); // refresh lists entirely upon success
+      
+      // Also silently re-fetch overview stats locally if we delete something to stay synchronous
+      if (activeView === 'Overview') {
+          // Handled via the useEffect above normally, but we can force it here
+      }
+    } catch (err: any) {
+      alert(`Delete failed: ${err.message}`);
+    }
+  };
+
   if (!currentUser) return <div className={styles.loader}><div className={styles.spinner}></div></div>;
 
   return (
-    <div className={styles.layout}>
+    <div className={`${styles.layout} ${theme === 'light' ? styles.lightTheme : ''}`}>
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
@@ -199,9 +242,12 @@ export default function Dashboard() {
             )}
           </div>
           
-          <div className={styles.darkModeToggle}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-            Dark Mode On
+          <div className={styles.darkModeToggle} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            {theme === 'dark' ? (
+              <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> Dark Mode</>
+            ) : (
+              <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg> Light Mode</>
+            )}
           </div>
         </div>
       </aside>
@@ -277,24 +323,97 @@ export default function Dashboard() {
                     </div>
                   </section>
                   
-                  {/* Doughnut Chart Mock View for Interactivity Context */}
-                  {Object.keys(summaryData.categoryTotals).length > 0 && (
-                    <section className={styles.chartsSection} style={{marginTop:'24px', gridTemplateColumns:'1fr'}}>
-                      <div className={styles.panel}>
-                        <div className={styles.panelHeader}>
-                          <h3 className={styles.panelTitle}>Spending Breakdown by Category</h3>
+                  {/* High Quality Interactive Recharts visualizations */}
+                  {(summaryData.monthlyTrends || Object.keys(summaryData.categoryTotals).length > 0) && (
+                    <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginTop: '24px' }}>
+                      {/* Interactive Line Chart for Trends */}
+                      <div className={styles.panel} style={{ flex: '1 1 500px', padding: '24px' }}>
+                        <div className={styles.panelHeader} style={{ marginBottom: '24px' }}>
+                          <h3 className={styles.panelTitle}>Monthly Performance</h3>
+                          <p className={styles.panelSub}>Hover to track exact income vs expenses</p>
                         </div>
-                        <div className={styles.legendGrid}>
-                          {Object.entries(summaryData.categoryTotals).map(([cat, amount], i) => (
-                             <div key={cat} className={styles.legendItem} style={{fontSize:'14px'}}>
-                               <div className={`${styles.dot}`} style={{backgroundColor:['#ec4899','#3b82f6','#eab308','#10b981','#6366f1'][i%5]}}></div> 
-                               {cat}: <strong style={{color:'white'}}>₹{amount.toLocaleString('en-IN')}</strong>
-                             </div>
-                          ))}
+                        <div style={{ height: 320, width: '100%' }}>
+                          <ResponsiveContainer>
+                            <LineChart data={summaryData.monthlyTrends || []} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#e5e7eb'} vertical={false} />
+                              <XAxis dataKey="month" stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} tick={{ fontSize: 13 }} />
+                              <YAxis stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'} tick={{ fontSize: 13 }} tickFormatter={(val) => `₹${val}`} />
+                              <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', border: '1px solid rgba(147, 51, 234, 0.2)', borderRadius: '12px', color: theme === 'dark' ? '#ffffff' : '#111827', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                              <Line type="monotone" dataKey="income" name="Income (₹)" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 8 }} />
+                              <Line type="monotone" dataKey="expense" name="Expense (₹)" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e' }} activeDot={{ r: 8 }} />
+                            </LineChart>
+                          </ResponsiveContainer>
                         </div>
                       </div>
-                    </section>
+
+                      {/* Interactive Pie Chart for Categories */}
+                      <div className={styles.panel} style={{ flex: '1 1 300px', padding: '24px' }}>
+                        <div className={styles.panelHeader} style={{ marginBottom: '24px' }}>
+                          <h3 className={styles.panelTitle}>Spending Analysis</h3>
+                          <p className={styles.panelSub}>Distribution across all categories</p>
+                        </div>
+                        <div style={{ height: 320, width: '100%', display: 'flex', flexDirection: 'column' }}>
+                          <ResponsiveContainer width="100%" height="80%">
+                            <PieChart>
+                              <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', border: '1px solid rgba(147, 51, 234, 0.2)', borderRadius: '12px', color: theme === 'dark' ? '#ffffff' : '#111827' }} />
+                              <Pie 
+                                data={Object.entries(summaryData.categoryTotals).map(([name, value]) => ({ name, value }))} 
+                                dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5}
+                              >
+                                {Object.entries(summaryData.categoryTotals).map(([name], i) => (
+                                  <Cell key={name} fill={['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'][i % 5]} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          
+                          {/* Modern Animated Legend */}
+                          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: 'auto' }}>
+                            {Object.entries(summaryData.categoryTotals).map(([cat, amount], i) => (
+                              <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme === 'dark' ? '#d1d5db' : '#4b5563', fontWeight: 500 }}>
+                                <span style={{ display: 'block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'][i % 5] }} />
+                                {cat}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
+
+                  {/* Recent Activity Mini-Table */}
+                  <div className={styles.panel} style={{ marginTop: '24px', padding: '24px' }}>
+                    <div className={styles.panelHeader} style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 className={styles.panelTitle}>Recent Interventions</h3>
+                      <button className={styles.btnPrimary} style={{ background: 'transparent', border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#d1d5db'}`, color: theme === 'dark' ? '#d1d5db' : '#374151', height: 'auto', padding: '6px 12px', fontSize: '12px' }} onClick={() => setActiveView('Transactions')}>View All</button>
+                    </div>
+                    <div className={styles.tableContainer} style={{ background: 'transparent', border: 'none' }}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th style={{ background: 'transparent' }}>Date</th>
+                            <th style={{ background: 'transparent' }}>Type</th>
+                            <th style={{ background: 'transparent' }}>Category</th>
+                            <th style={{ background: 'transparent' }}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {recentRecords.length === 0 ? (
+                            <tr><td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>No recent activity to display</td></tr>
+                          ) : (
+                            recentRecords.slice(0, 5).map(rec => (
+                              <tr key={rec.id}>
+                                <td>{new Date(rec.date || rec.createdAt).toLocaleDateString()}</td>
+                                <td><span className={rec.type === 'INCOME' ? styles.badgeIncome : styles.badgeExpense}>{rec.type}</span></td>
+                                <td>{rec.category}</td>
+                                <td style={{ fontWeight: 600 }}>₹{rec.amount.toLocaleString('en-IN')}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </>
               )}
             </>
@@ -337,6 +456,28 @@ export default function Dashboard() {
                 </div>
               </form>
 
+              <div className={styles.formBox} style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{width:'100%', marginBottom:'8px'}}>
+                   <h3 className={styles.panelTitle}>Deep Search Filters</h3>
+                   <p className={styles.panelSub}>Narrow down transactions instantly.</p>
+                </div>
+                <div className={styles.formGroup} style={{ flexGrow: 1 }}>
+                  <label>Content Match</label>
+                  <input type="text" className={styles.inputField} placeholder="e.g. Salary, Rent, Food..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Origin Date</label>
+                  <input type="date" className={styles.inputField} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Termination Date</label>
+                  <input type="date" className={styles.inputField} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                </div>
+                <div className={styles.formGroup}>
+                  <button type="button" className={styles.btnPrimary} style={{background:'#3b82f6'}} onClick={fetchRecords}>Query Backend</button>
+                </div>
+              </div>
+
               {/* Transactions List - Tests Viewing Logic */}
               {recordsError ? (
                 <div className={styles.errorBox}><strong>API Access Restricted:</strong> {recordsError} <br/><br/><span style={{fontSize:'12px', color:'#9ca3af'}}>* Backend successfully rejected your request. Switch to Analyst or Admin to view records.</span></div>
@@ -350,11 +491,12 @@ export default function Dashboard() {
                         <th>Category</th>
                         <th>Notes</th>
                         <th>Amount</th>
+                        {currentUser?.role === 'Admin' && <th style={{textAlign:'right'}}>Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
                       {records.length === 0 ? (
-                        <tr><td colSpan={5} style={{textAlign:'center', padding:'32px'}}>No records found or loading...</td></tr>
+                        <tr><td colSpan={6} style={{textAlign:'center', padding:'32px'}}>No records found matching filters.</td></tr>
                       ) : (
                         records.map(rec => (
                           <tr key={rec.id}>
@@ -363,6 +505,13 @@ export default function Dashboard() {
                             <td>{rec.category}</td>
                             <td>{rec.notes || '-'}</td>
                             <td style={{fontWeight:600}}>₹{rec.amount.toLocaleString('en-IN')}</td>
+                            {currentUser?.role === 'Admin' && (
+                              <td style={{textAlign:'right'}}>
+                                <button onClick={() => handleDeleteRecord(rec.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius:'6px', display:'inline-flex' }}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))
                       )}
