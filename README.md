@@ -39,6 +39,13 @@ npx ts-node prisma/seed.ts
 npm run dev
 ```
 
+5. **View Database (Prisma Studio)**
+You can easily view and manage your database graphically using Prisma Studio. Run the following command in a new terminal window:
+```bash
+npx prisma studio
+```
+*This will open a graphical interface in your browser (usually at `http://localhost:5555`) where you can see all your tables, including user records and their IDs.*
+
 ## API Documentation
 
 All API requests must include the `X-User-Id` header correlating to an ID in your `User` table (grab these from Prisma Studio via `npx prisma studio`).
