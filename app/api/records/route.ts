@@ -4,7 +4,7 @@ import { RecordService } from '../../../services/record.service';
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser(req);
-  if (!user || !hasRole(user, ['Admin', 'Analyst', 'Viewer'])) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user || !hasRole(user, ['Admin', 'Analyst'])) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') as string | undefined;
