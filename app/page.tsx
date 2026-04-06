@@ -357,22 +357,23 @@ export default function Dashboard() {
                             <PieChart>
                               <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', border: '1px solid rgba(147, 51, 234, 0.2)', borderRadius: '12px', color: theme === 'dark' ? '#ffffff' : '#111827' }} />
                               <Pie 
-                                data={Object.entries(summaryData.categoryTotals).map(([name, value]) => ({ name, value }))} 
+                                data={(Object.entries(summaryData.categoryTotals) as [string, number][]).map(([name, value]) => ({ name, value }))} 
                                 dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5}
                               >
-                                {Object.entries(summaryData.categoryTotals).map(([name], i) => (
+                                {(Object.entries(summaryData.categoryTotals) as [string, number][]).map(([name], i) => (
                                   <Cell key={name} fill={['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'][i % 5]} />
                                 ))}
                               </Pie>
                             </PieChart>
                           </ResponsiveContainer>
                           
-                          {/* Modern Animated Legend */}
+                          {/* Modern Animated Legend with Type-Safe Values */}
                           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: 'auto' }}>
-                            {Object.entries(summaryData.categoryTotals).map(([cat, amount], i) => (
+                            {(Object.entries(summaryData.categoryTotals) as [string, number][]).map(([cat, amount], i) => (
                               <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme === 'dark' ? '#d1d5db' : '#4b5563', fontWeight: 500 }}>
                                 <span style={{ display: 'block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'][i % 5] }} />
-                                {cat}
+                                <span style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{cat}</span>
+                                <span style={{ color: theme === 'dark' ? '#ffffff' : '#111827', fontWeight: 600 }}>₹{amount.toLocaleString('en-IN')}</span>
                               </div>
                             ))}
                           </div>
