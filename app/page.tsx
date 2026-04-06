@@ -87,7 +87,12 @@ export default function Dashboard() {
         if (!res.ok) throw new Error(`${res.status} ${res.statusText} - ${json.error || 'Forbidden'}`);
         return json;
       })
-      .then(json => setRecords(json.data || json))
+      .then(json => {
+        if (Array.isArray(json)) setRecords(json);
+        else if (json.records) setRecords(json.records);
+        else if (json.data) setRecords(json.data);
+        else setRecords([]);
+      })
       .catch(err => setRecordsError(err.message));
   };
 
